@@ -65,7 +65,7 @@ class ActivationWorker(QThread):
                 raise Exception(message)
             
             # # PHASE 8: Final reboot
-            self.detector.reboot_device_thread(self.progress_updated)
+            self.reboot_and_wait(10,10)
 
             # # PHASE 9: SMART ACTIVATION CHECKING WITH RETRY LOGIC
             activation_status = self.smart_activation_check_with_retry()
@@ -221,11 +221,11 @@ class ActivationWorker(QThread):
             return "Unactivated"      
 
 # Utility methods
-    def reboot_and_wait(self,wait_time=10):
+    def reboot_and_wait(self,wait_time=10,timeout=90):
         print("🔄 Rebooting device and waiting...")
         self.wait_with_progress(wait_time, 70, "Waiting 10 seconds before first reboot...")  
         self.reboot_and_detect_connection()    
-        self.wait_with_progress(90, 70, "Waiting 90 seconds after first reboot...")
+        self.wait_with_progress(timeout, 70, f"Waiting {timeout} seconds after first reboot...")
  
     def wait_with_progress(self, wait_time, current_progress, message):
         try:

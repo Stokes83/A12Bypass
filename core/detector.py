@@ -14,6 +14,7 @@ from security.monitor import security_monitor
 from utils.helpers import run_subprocess_no_console, get_lib_path
 from PyQt5 import uic
 from core.api import Api
+from config import CONTACT_URL
 
 class DeviceDetector(QMainWindow):
     device_connected = pyqtSignal(bool)
