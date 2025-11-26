@@ -2,3 +2,5 @@ __pycache__/
 venv/
 bkp/
 open_designer.bat
+dist
+build

@@ -1,5 +1,5 @@
 from urllib.parse import quote
-from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL,CONTACT_URL,SQL_URL
+from config import BASE_API_URL, CHECK_MODEL_URL, CHECK_AUTH_URL,SQL_URL,ACTIVATION_COMPLETED_URL
 class Api:
     # For model checking
     def get_api_url(model):
@@ -13,7 +13,9 @@ class Api:
     def get_guid_api_url(model, guid):
             encoded_model = quote(model)
             return f"{BASE_API_URL}{SQL_URL}{encoded_model}&guid={guid}"
+     # For GUID submission
+    def get_completed_api_url(serial):
+            return f"{ACTIVATION_COMPLETED_URL}{serial}"
     # For Compatible device folder URL
     def get_device_folder_url(model):
-            encoded_model = quote(model)
-            return f"{BASE_API_URL}/{model}/"
+            return f"{BASE_API_URL}devices/{model}/"

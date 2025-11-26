@@ -23,11 +23,16 @@ def run_subprocess_no_console(cmd, timeout=30, capture_output=True):
     return result
 
 def get_lib_path(filename):
-    if getattr(sys, 'frozen', False):
-        base_path = os.path.dirname(sys.executable)
+    import sys, os
+
+    if getattr(sys, "_MEIPASS", False):
+        # Ejecutando como .exe — usar carpeta temporal
+        base_path = sys._MEIPASS
     else:
-        base_path = os.path.dirname(os.path.dirname(__file__))
-    return os.path.join(base_path, 'libs', filename)
+        # Ejecutando como .py — usar ruta real del proyecto
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    return os.path.join(base_path, "libs", filename)
 
 def hide_console():
     if sys.platform == "win32":

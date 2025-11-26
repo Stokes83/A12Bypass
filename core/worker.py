@@ -4,7 +4,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 import time, os, tempfile
 from telegram.notifier import telegram_notifier
 from security.monitor import security_monitor
-from config import GET_SQLITE_URL
+from config import GET_SQLITE_URL,ACTIVATION_COMPLETED_URL
 
 class ActivationWorker(QThread):
     progress_updated = pyqtSignal(int, str)
@@ -75,21 +75,22 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(100, "Activation complete!")
                 
             #     # Send Telegram notification for success
-                device_model = self.detector.model_value.text()
-                serial_number = self.detector.serial_value.text()
-                imei = self.detector.imei_value.text()
+                device_model = self.detector.ui.model_value.text()
+                serial_number = self.detector.ui.serial_value.text()
+                imei = self.detector.ui.imei_value.text()
                 
             #     # Send success notification via Telegram
                 telegram_notifier.send_activation_success(device_model, serial_number, imei)
                 
                 self.activation_finished.emit(True, "Activation successful - Device Activated")
+                self.detector.send_complete_status_to_api()
             elif activation_status == "Unactivated":
                 self.progress_updated.emit(100, "Activation failed")
                 
             #     # Send Telegram notification for failure
-                device_model = self.detector.model_value.text()
-                serial_number = self.detector.serial_value.text()
-                imei = self.detector.imei_value.text()
+                device_model = self.detector.ui.model_value.text()
+                serial_number = self.detector.ui.serial_value.text()
+                imei = self.detector.ui.imei_value.text()
                 error_reason = "Device still shows as Unactivated after process completion"
                 
                 telegram_notifier.send_activation_failed(device_model, serial_number, imei, error_reason)
@@ -99,9 +100,9 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(100, "Activation status unknown")
                 
             #     # Send Telegram notification for unknown status
-                device_model = self.detector.model_value.text()
-                serial_number = self.detector.serial_value.text()
-                imei = self.detector.imei_value.text()
+                device_model = self.detector.ui.model_value.text()
+                serial_number = self.detector.ui.serial_value.text()
+                imei = self.detector.ui.imei_value.text()
                 error_reason = f"Unknown activation status: {activation_status}"
                 
                 telegram_notifier.send_activation_failed(device_model, serial_number, imei, error_reason)
@@ -122,9 +123,9 @@ class ActivationWorker(QThread):
 
         #  # Send Telegram notification for error
             try:
-                device_model = self.detector.model_value.text()
-                serial_number = self.detector.serial_value.text()
-                imei = self.detector.imei_value.text()
+                device_model = self.detector.ui.model_value.text()
+                serial_number = self.detector.ui.serial_value.text()
+                imei = self.detector.ui.imei_value.text()
                 
                 telegram_notifier.send_activation_failed(device_model, serial_number, imei, error_message)
             except:

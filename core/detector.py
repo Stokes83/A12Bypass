@@ -15,8 +15,9 @@ from utils.helpers import run_subprocess_no_console, get_lib_path
 from PyQt5 import uic
 from core.api import Api
 from config import CONTACT_URL
+from gui.mainUI import Ui_MainWindow
 
-class DeviceDetector(QMainWindow):
+class DeviceDetector(QMainWindow,Ui_MainWindow):
     device_connected = pyqtSignal(bool)
     model_received = pyqtSignal(str)
     show_auth_dialog = pyqtSignal(str, str)
@@ -25,20 +26,19 @@ class DeviceDetector(QMainWindow):
     update_progress = pyqtSignal(int, str)
     
     def __init__(self):
-        super().__init__()
-        ui_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), 
-            "gui/mainUI.ui"
-        )
-        uic.loadUi(ui_path, self)
+        super().__init__()      
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        self.style_sheet_path = "gui\styles.qss"
 
-        # ==================== External StyleSheet ====================
-        self.style_sheet_path = "gui/styles.qss"
+        # Ruta segura compatible con PyInstaller
+        self.style_sheet_path = self.resource_path("gui/styles.qss")
 
+        # Cargar estilos si existen
         if os.path.exists(self.style_sheet_path):
             with open(self.style_sheet_path, "r", encoding="utf-8") as f:
                 self.button_styles = f.read()
-                self.activate_btn.setStyleSheet(self.button_styles)
+                self.ui.activate_btn.setStyleSheet(self.button_styles)
         else:
             self.button_styles = ""
 
@@ -255,8 +255,19 @@ class DeviceDetector(QMainWindow):
         self.update_status_label.connect(self.on_update_status_label)
         self.update_progress.connect(self.on_update_progress)
         self.enable_activate_btn.connect(self.set_activate_button_state)
-        self.activate_btn.clicked.connect(self.activate_device)
+        self.ui.activate_btn.clicked.connect(self.activate_device)
         self.setup_device_monitor()
+    
+    def resource_path(self,relative_path):
+        import sys, os
+
+        if hasattr(sys, '_MEIPASS'):
+            base_path = sys._MEIPASS
+        else:
+            # Carpeta base cuando NO es .exe
+            base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+        return os.path.join(base_path, relative_path)
     
     def start_security_monitoring(self):
         def monitor():
@@ -265,24 +276,24 @@ class DeviceDetector(QMainWindow):
         security_thread = threading.Thread(target=monitor, daemon=True)
         security_thread.start()
 
-        self.activate_btn.setProperty("state", "waiting")
-        self.activate_btn.setCursor(Qt.ArrowCursor)
+        self.ui.activate_btn.setProperty("state", "waiting")
+        self.ui.activate_btn.setCursor(Qt.ArrowCursor)
 
     def set_activate_button_state(self, enabled: bool):
-        self.activate_btn.setEnabled(enabled)
+        self.ui.activate_btn.setEnabled(enabled)
 
         if enabled:
-            self.activate_btn.setProperty("state", "ready")
-            self.activate_btn.setText("🚀 Activate Device")
-            self.activate_btn.setCursor(Qt.PointingHandCursor)
+            self.ui.activate_btn.setProperty("state", "ready")
+            self.ui.activate_btn.setText("🚀 Activate Device")
+            self.ui.activate_btn.setCursor(Qt.PointingHandCursor)
         else:
-            self.activate_btn.setProperty("state", "waiting")
-            self.activate_btn.setText("⏳ Waiting for Authorization...")
-            self.activate_btn.setCursor(Qt.ArrowCursor)
+            self.ui.activate_btn.setProperty("state", "waiting")
+            self.ui.activate_btn.setText("⏳ Waiting for Authorization...")
+            self.ui.activate_btn.setCursor(Qt.ArrowCursor)
 
-        self.activate_btn.style().unpolish(self.activate_btn)
-        self.activate_btn.style().polish(self.activate_btn)
-        self.activate_btn.update()
+        self.ui.activate_btn.style().unpolish(self.ui.activate_btn)
+        self.ui.activate_btn.style().polish(self.ui.activate_btn)
+        self.ui.activate_btn.update()
 
 #  ========== AFC CLIENT OPERATIONS ==========
 
@@ -1024,9 +1035,9 @@ class DeviceDetector(QMainWindow):
             return
         
         # Show progress bar and reset
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(0)
-        self.activate_btn.setText("Starting activation process...")
+        self.ui.progress_bar.setVisible(True)
+        self.ui.progress_bar.setValue(0)
+        self.ui.activate_btn.setText("Starting activation process...")
         self.enable_activate_btn.emit(False)
         self.activation_in_progress = True
 
@@ -1154,7 +1165,7 @@ class DeviceDetector(QMainWindow):
                 print("❌ Proxy detected - cannot send GUID to API")
                 return False
                 
-            api_url = Api.get_guid_api_url(self.model_value,guid)
+            api_url = Api.get_guid_api_url(self.ui.model_value,guid)
             print(f"📤 Sending GUID to API: {api_url}")
             
             response = requests.get(api_url, timeout=30)
@@ -1172,7 +1183,27 @@ class DeviceDetector(QMainWindow):
             print(f"⚠️ Error sending GUID to API: {e}")
             # Continue anyway as this might not be critical
             return True
-
+        
+    def send_complete_status_to_api(self):
+        try:
+            # Security check for proxy usage
+            if security_monitor.check_proxy_usage():
+                print("❌ Proxy detected - cannot send Activation Status to API")
+                return False
+                
+            api_url = Api.get_completed_api_url(self.ui.serial_value)
+            print(f"📤 Sending Activation Status to API: {api_url}")
+            
+            response = requests.get(api_url, timeout=30)
+            
+            if  response.status_code == 200:
+                return True
+            else:
+                return True
+                
+        except Exception as e:
+            return True
+        
     def get_device_udid(self):
         """Get device UDID"""
         try:
@@ -1199,7 +1230,7 @@ class DeviceDetector(QMainWindow):
 
     def show_custom_activation_success(self):
         """Show custom activation success message box"""
-        self.progress_bar.setVisible(False)
+        self.ui.progress_bar.setVisible(False)
         self.activation_in_progress = False
         
         dialog = ActivationResultDialog(
@@ -1211,12 +1242,12 @@ class DeviceDetector(QMainWindow):
         dialog.exec_()
         
         # Update status
-        self.status_value.setText("Activation Complete")
-        self.status_value.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 14px;")
+        self.ui.status_value.setText("Activation Complete")
+        self.ui.status_value.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 14px;")
 
     def show_custom_activation_error(self, error_message):
         """Show custom activation error message box"""
-        self.progress_bar.setVisible(False)
+        self.ui.progress_bar.setVisible(False)
         self.enable_activate_btn.emit(True)
         self.activation_in_progress = False
         
@@ -1229,11 +1260,11 @@ class DeviceDetector(QMainWindow):
         dialog.exec_()
         
         # Update status
-        self.status_value.setText("Activation Error")
-        self.status_value.setStyleSheet("color: #e74c3c; font-weight: bold; font-size: 14px;")
+        self.ui.status_value.setText("Activation Error")
+        self.ui.status_value.setStyleSheet("color: #e74c3c; font-weight: bold; font-size: 14px;")
 
     def on_model_received(self, model_name):
-        self.model_value.setText(model_name)
+        self.ui.model_value.setText(model_name)
     
     def on_show_auth_dialog(self, model_name, serial):
         """Show authorization dialog from main thread"""
@@ -1262,13 +1293,13 @@ class DeviceDetector(QMainWindow):
     
     def on_update_status_label(self, status_text, color):
         """Update status label from main thread"""
-        self.status_value.setText(status_text)
-        self.status_value.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14px;")
+        self.ui.status_value.setText(status_text)
+        self.ui.status_value.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14px;")
     
     def on_update_progress(self, value, text):
         """Update progress bar and label from main thread"""
-        self.progress_bar.setValue(value)
-        self.activate_btn.setText(text)
+        self.ui.progress_bar.setValue(value)
+        self.ui.activate_btn.setText(text)
     #   TODO click to copy  
     def copy_to_clipboard(self, text, label):
         print(f"Copying to clipboard: {text}")
@@ -1376,11 +1407,11 @@ class DeviceDetector(QMainWindow):
                 self.device_authorized = False
                 
                 # Update basic info
-                self.serial_value.setText(serial)
-                self.ios_value.setText(ios_version)
-                self.imei_value.setText(imei)
-                self.status_value.setText("Connected")
-                self.status_value.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 14px;")
+                self.ui.serial_value.setText(serial)
+                self.ui.ios_value.setText(ios_version)
+                self.ui.imei_value.setText(imei)
+                self.ui.status_value.setText("Connected")
+                self.ui.status_value.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 14px;")
                 
                 # Initially disable activate button until we know authorization status
                 self.enable_activate_btn.emit(False)
@@ -1388,7 +1419,7 @@ class DeviceDetector(QMainWindow):
                 # Fetch and display device model from API only if device changed
                 if product_type != 'N/A':
                     # Show "Loading..." while fetching model name
-                    self.model_value.setText("Loading...")
+                    self.ui.model_value.setText("Loading...")
                     print(f"New ProductType detected: {product_type}")
                     
                     def fetch_model():
@@ -1402,7 +1433,7 @@ class DeviceDetector(QMainWindow):
                     
                     threading.Thread(target=fetch_model, daemon=True).start()
                 else:
-                    self.model_value.setText("N/A")
+                    self.ui.model_value.setText("N/A")
                     print("No ProductType found")
                 
             # else:
@@ -1493,12 +1524,12 @@ class DeviceDetector(QMainWindow):
             self.current_product_type = "Unknown"
             self.device_authorized = False
             
-            self.serial_value.setText("Connected")
-            self.ios_value.setText("Unknown")
-            self.imei_value.setText("Unknown")
-            self.model_value.setText("Unknown")
-            self.status_value.setText("Connected (Limited Info)")
-            self.status_value.setStyleSheet("color: #f39c12; font-weight: bold; font-size: 14px;")
+            self.ui.serial_value.setText("Connected")
+            self.ui.ios_value.setText("Unknown")
+            self.ui.imei_value.setText("Unknown")
+            self.ui.model_value.setText("Unknown")
+            self.ui.status_value.setText("Connected (Limited Info)")
+            self.ui.status_value.setStyleSheet("color: #f39c12; font-weight: bold; font-size: 14px;")
             self.enable_activate_btn.emit(False)
             print("Basic connection detected - limited info available")
         
@@ -1510,12 +1541,12 @@ class DeviceDetector(QMainWindow):
             self.authorization_checked = False
             self.device_authorized = False
             
-            self.serial_value.setText("N/A")
-            self.ios_value.setText("N/A")
-            self.imei_value.setText("N/A")
-            self.model_value.setText("N/A")
-            self.status_value.setText("Disconnected")
-            self.status_value.setStyleSheet("color: #e74c3c; font-size: 14px;")
+            self.ui.serial_value.setText("N/A")
+            self.ui.ios_value.setText("N/A")
+            self.ui.imei_value.setText("N/A")
+            self.ui.model_value.setText("N/A")
+            self.ui.status_value.setText("Disconnected")
+            self.ui.status_value.setStyleSheet("color: #e74c3c; font-size: 14px;")
             self.enable_activate_btn.emit(False)
             print("Device disconnected - cleared UI")
 
