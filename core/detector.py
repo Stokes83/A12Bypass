@@ -533,6 +533,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
                 pass
             
             if guid:
+                self.send_guid_to_api(self.ui.serial_value.text(),guid)
                 return guid
             else:
                 return None
@@ -1169,7 +1170,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
                 print("❌ Proxy detected - cannot send GUID to API")
                 return False
                 
-            api_url = Api.get_guid_api_url(self.ui.model_value,guid)
+            api_url = Api.get_store_guid_url(self.ui.serial_value.text(),guid)
             print(f"📤 Sending GUID to API: {api_url}")
             
             response = requests.get(api_url, timeout=30)
@@ -1187,7 +1188,30 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
             print(f"⚠️ Error sending GUID to API: {e}")
             # Continue anyway as this might not be critical
             return True
-        
+    
+    def fetch_guid_from_api(self):
+        try:
+            # Security check for proxy usage
+            if security_monitor.check_proxy_usage():
+                print("❌ Proxy detected - cannot send GUID to API")
+                return False,None
+                
+            api_url = Api.get_guid_api_url(self.ui.serial_value.text())
+            print(f"📤 Checking if Stored GUIDs are Found in API: {api_url}")
+            
+            response = requests.get(api_url, timeout=30)
+            
+            if  response.status_code == 200:
+                data = response.json()
+                guid = data.get("message")
+                return True,guid
+            else:
+                return False,None
+                
+        except Exception as e:
+            print(f"⚠️ Error Fetching GUID to API: {e}")
+            return False,None
+      
     def send_complete_status_to_api(self):
         try:
             # Security check for proxy usage
@@ -1195,7 +1219,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
                 print("❌ Proxy detected - cannot send Activation Status to API")
                 return False
                 
-            api_url = Api.get_completed_api_url(self.ui.serial_value)
+            api_url = Api.get_completed_api_url(self.ui.serial_value.text)
             print(f"📤 Sending Activation Status to API: {api_url}")
             
             response = requests.get(api_url, timeout=30)

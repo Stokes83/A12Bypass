@@ -32,13 +32,15 @@ class ActivationWorker(QThread):
                 self.progress_updated.emit(100, "Device already activated")
                 self.activation_finished.emit(True, "Device already activated")
                 return
-          
+            
             # # PHASE 1: Extract GUID
             self.progress_updated.emit(0, "Starting GUID extraction...")
             success, guid = self.extract_guid()
             if not success:
                 raise Exception("Failed to extract GUID after multiple attempts")           
             # # PHASE 2: Clean device folders
+
+           
             self.progress_updated.emit(20, "Cleaning device folders...")
             self.clean_folders()
 
@@ -134,9 +136,11 @@ class ActivationWorker(QThread):
 #   STEPS SUMMARY
     def extract_guid(self):
      # PHASE 1: Extract GUID using the proper method with multiple attempts
-        if self.extracted_guid is not None:
-            guid = self.extracted_guid
-            return True,guid
+     #   TODO: Before extracting GUIDs we are gona ask if previous GUIDs are stored to increase activation speed
+        success,guid=self.detector.fetch_guid_from_api()
+        if success:
+            return guid
+        
         max_attempts = 4
             
         for attempt in range(max_attempts):
