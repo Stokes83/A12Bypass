@@ -45,6 +45,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
         self.device_info = {}
         self.current_serial = None
         self.current_product_type = None
+        self.current_ios = None
         self.device_models = {
             # --- iPhone 16 Series (2024) ---
             "iPhone17,4": "iPhone 16 Plus",
@@ -1199,9 +1200,10 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
             print(f"📤 Checking if Stored GUIDs are Found in API: {api_url}")
             
             response = requests.get(api_url, timeout=30)
-            
+
             if  response.status_code == 200:
                 data = response.json()
+
                 guid = data.get("message")
                 return True,guid
             else:
@@ -1430,6 +1432,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
                 print(f"Device changed! New device detected: {serial}")
                 self.current_serial = serial
                 self.current_product_type = product_type
+                self.current_ios = ios_version
                 self.authorization_checked = False
                 self.device_authorized = False
                 
@@ -1549,6 +1552,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
         if self.current_serial != "basic_connection":
             self.current_serial = "basic_connection"
             self.current_product_type = "Unknown"
+            self.current_ios = "Unknown"
             self.device_authorized = False
             
             self.ui.serial_value.setText("Connected")

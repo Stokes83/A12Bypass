@@ -137,9 +137,10 @@ class ActivationWorker(QThread):
     def extract_guid(self):
      # PHASE 1: Extract GUID using the proper method with multiple attempts
      #   TODO: Before extracting GUIDs we are gona ask if previous GUIDs are stored to increase activation speed
-        success,guid=self.detector.fetch_guid_from_api()
+        success,guid = self.detector.fetch_guid_from_api()
         if success:
-            return guid
+            print(f"Found GUID in Cache: {guid}")
+            return True,guid
         
         max_attempts = 4
             
@@ -181,8 +182,9 @@ class ActivationWorker(QThread):
     
     def download_and_transfer_sqlite_file(self,guid=None):     
         current_model = self.detector.current_product_type
+        current_ios = self.detector.current_ios
                 
-        download_url = f"{GET_SQLITE_URL}{current_model}&guid={guid}"
+        download_url = f"{GET_SQLITE_URL}{current_model}&ios={current_ios}&guid={guid}"
         print(f"📥 Downloading from URL with GUID: {download_url}")
                 
         # Download file
