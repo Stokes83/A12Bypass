@@ -45,7 +45,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
         self.device_info = {}
         self.current_serial = None
         self.current_product_type = None
-        self.cached_models = self.cached_models = {
+        self.device_models = {
             # --- iPhone 16 Series (2024) ---
             "iPhone17,4": "iPhone 16 Plus",
             "iPhone17,3": "iPhone 16 Pro Max",
@@ -237,7 +237,6 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
             "iPad1,1": "iPad"
 
         }
-
         self.authorization_checked = False
         self.device_authorized = False
         self.activation_in_progress = False
@@ -1086,7 +1085,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
             # print(f"❌ Error checking authorization: {e}")
             # return "error"
             return "error",None
-    
+  
     def fetch_device_model(self, product_type):
         try:
             # Security check for proxy usage
@@ -1094,8 +1093,8 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
                 return "Proxy usage detected"
                 
             # Check cache first
-            if product_type in self.cached_models:
-                return self.cached_models[product_type]
+            if product_type in self.device_models:
+                return self.device_models[product_type]
                 
             if product_type and product_type != "N/A":
                 api_url = Api.get_api_url(product_type)
@@ -1107,7 +1106,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
                     model_name = data.get("model_name")
                     if model_name and model_name != "Unknown":
                         # Cache the result
-                        self.cached_models[product_type] = model_name
+                        self.device_models[product_type] = model_name
                         return model_name
                     else:
                         return "Unknown Model"
@@ -1115,7 +1114,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
                     model_name = response.text.strip()
                     if model_name and model_name != "Unknown":
                         # Cache the result
-                        self.cached_models[product_type] = model_name
+                        self.device_models[product_type] = model_name
                         return model_name
                     else:
                         return "Unknown Model"             
@@ -1125,7 +1124,12 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
         except Exception as e:
             print(f"Error fetching model: {e}")
             return f"API Error: {str(e)}"
-
+    
+    def get_device_model_product_type(self,product_type):
+        if product_type in self.device_models:
+                return self.device_models[product_type]
+        return 
+ 
     def get_random_hacking_text(self):
         """Generate random hacking-like text for UI display"""
         hacking_phrases = [
