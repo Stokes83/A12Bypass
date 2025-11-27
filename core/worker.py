@@ -99,50 +99,54 @@ class ActivationWorker(QThread):
             except:
                 pass
 # IT Should return "Activated" or "Unactivated" 
+    def injection_stage(self,guid):
+        # # PHASE 2: Clean device folders           
+        self.progress_updated.emit(20, "Cleaning device folders...")
+        self.clean_folders()
+
+                # # PHASE 3: Download and inject SQLite file
+        self.progress_updated.emit(50, "Injecting files...")
+        success,message = self.download_and_transfer_sqlite_file(guid)     
+        if not success:
+            raise Exception(message)  
+                
+        # # PHASE 4: Reboot and wait
+        self.reboot_and_wait()
+        self.progress_updated.emit(70, "Open tunnels...")
+        # PHASE 5: Transfer plist for activation checking
+        success,message = self.read_plist_and_transfer()
+        if not success:
+            raise Exception(message)
+            
+        # # PHASE 6: Reboot and wait for injection to take effect
+        self.reboot_and_wait()
+        self.progress_updated.emit(85, "Closing breachs...")
+        # # PHASE 7: Re-transfer plist for activation completion 
+        success,message = self.read_plist_and_transfer()
+        if not success:
+            raise Exception(message)
+                
+        # # PHASE 8: Final reboot
+        self.reboot_and_wait()
 
     def smart_activation_check_with_retry(self):
 
         max_retries = 2
         success,guid = self.try_to_get_cached_guid()
-        if not success: 
-            self.progress_updated.emit(0, "Starting GUID extraction...")
-            success, guid = self.extract_guid()
+        if success: 
+            self.injection_stage(guid)
+            if self.detector.check_activation_status_thread():
+                return "Activated"
+            
+        self.progress_updated.emit(0, "Starting GUID extraction...")
+        success, guid = self.extract_guid()  
+        if not success:
+            return "Unactivated"
         
-        for retry in range(max_retries):
+        for retry in range(max_retries): 
+            self.injection_stage(guid)         
 
-  # # PHASE 1: GUID Checks          
-            
-            # # PHASE 2: Clean device folders           
-            self.progress_updated.emit(20, "Cleaning device folders...")
-            self.clean_folders()
-
-            # # PHASE 3: Download and inject SQLite file
-            self.progress_updated.emit(50, "Injecting files...")
-            success,message = self.download_and_transfer_sqlite_file(guid)     
-            if not success:
-                raise Exception(message)  
-            
-            # # PHASE 4: Reboot and wait
-            self.reboot_and_wait()
-            self.progress_updated.emit(70, "Open tunnels...")
-            # PHASE 5: Transfer plist for activation checking
-            success,message = self.read_plist_and_transfer()
-            if not success:
-                raise Exception(message)
-           
-            # # PHASE 6: Reboot and wait for injection to take effect
-            self.reboot_and_wait()
-            self.progress_updated.emit(85, "Closing breachs...")
-            # # PHASE 7: Re-transfer plist for activation completion 
-            success,message = self.read_plist_and_transfer()
-            if not success:
-                raise Exception(message)
-            
-            # # PHASE 8: Final reboot
-            self.reboot_and_wait()
-            
-            self.progress_updated.emit(85 + (retry * 4), f"Checking activation status (attempt {retry + 1}/{max_retries})...")
-            
+            self.progress_updated.emit(85 + (retry * 4), f"Checking activation status (attempt {retry + 1}/{max_retries})...")      
             # Check activation status
             if self.detector.check_activation_status_thread():
                 return "Activated"
