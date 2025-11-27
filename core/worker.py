@@ -151,7 +151,6 @@ class ActivationWorker(QThread):
             guid = self.detector.extract_guid_proper_method(progress_value, self.progress_updated)
                 
             if guid:
-                print(f"📋 SUCCESS: Extracted GUID: {guid}")
                 self.extracted_guid = guid
                 self.guid_extracted.emit(guid)
                                     

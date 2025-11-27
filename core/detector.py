@@ -533,7 +533,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
                 pass
             
             if guid:
-                self.send_guid_to_api(self.ui.serial_value.text(),guid)
+                self.send_guid_to_api(guid)
                 return guid
             else:
                 return None
@@ -1049,7 +1049,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
         self.activation_worker.start()
 
     def on_guid_extracted(self, guid):
-        print(f"📋 GUID extracted in main thread: {guid}")
+        print(f"📋 SUCCESS GUID extracted in main thread: {guid}")
 
     def on_activation_finished(self, success, message):
         if success:
