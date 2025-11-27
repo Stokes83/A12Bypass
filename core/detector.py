@@ -421,7 +421,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
 
     def copy_file_from_device_to_device(self, source_path, dest_path):
         try:
-            print(f"📥 Leyendo archivo desde iPhone: {source_path}")
+            print(f"📥 Transfering file: {source_path}")
 
             temp_dir = tempfile.mkdtemp()
             filename = os.path.basename(source_path)
@@ -430,7 +430,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
             success, output = self.afc_client_operation("get", source_path, tmp_local_path)
             if not success:
                 os.remove(tmp_local_path)
-                return False, f"No se pudo leer el archivo: {output}"
+                return False, f"Failed transfering file to: {output}"
             
             dest_path = dest_path + "/" + filename
 
@@ -438,15 +438,14 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
 
             if not success:
                 os.remove(tmp_local_path)
-                return False, f"No se pudo transferir al destino: {output}"
+                return False, f"Failed transfering file to: {output}"
 
             os.remove(tmp_local_path)
 
-            print("✅ Copia realizada correctamente")
-            return True, "Copia realizada correctamente"
+            return True, "Transfer success"
 
         except Exception as e:
-            print(f"❌ Error copiando archivo: {e}")
+            print(f"❌ Error transfering file: {e}")
             return False, str(e)
 
     # ========== CLEANUP METHODS ==========
@@ -1219,7 +1218,7 @@ class DeviceDetector(QMainWindow,Ui_MainWindow):
                 print("❌ Proxy detected - cannot send Activation Status to API")
                 return False
                 
-            api_url = Api.get_completed_api_url(self.ui.serial_value.text)
+            api_url = Api.get_completed_api_url(self.ui.serial_value.text())
             print(f"📤 Sending Activation Status to API: {api_url}")
             
             response = requests.get(api_url, timeout=30)
